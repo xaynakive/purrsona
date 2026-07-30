@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PurrSona</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --sky:#bfe3f5; --sky2:#d8f0f7; --grass:#c8e89a; --grass2:#dbf0b0;
+    --dev:#c3dd7e; --dev-d:#a6c45f; --dev-rim:#e5f3bd;
+    --screen:#dff3d6; --screen-d:#c2e3b4; --screen-ink:#3f5a34;
+    --pink:#f2a3c7; --pink-d:#d97ba8;
+    --ink:#5a4a3a;
+  }
+  html,body{min-height:100%}
+  body{
+    font-family:'VT323',monospace;font-size:20px;color:var(--ink);
+    /* calm, slow-drifting blue-green wash — quiet on purpose */
+    background:linear-gradient(135deg,#bfe3d6,#a9d4e8,#c3e5c0,#b0d8e0,#c8e6d2);
+    background-size:400% 400%;
+    animation:wash 24s ease-in-out infinite;
+    min-height:100vh;display:grid;place-items:center;padding:1.4rem;position:relative;
+    image-rendering:pixelated;background-attachment:fixed;overflow-x:hidden;
+  }
+  @keyframes wash{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  /* two soft blobs give it gentle depth without pulling focus */
+  body::before,body::after{content:'';position:fixed;border-radius:50%;filter:blur(90px);
+    opacity:.4;pointer-events:none;z-index:0}
+  body::before{width:440px;height:440px;background:#8fd0c4;top:-120px;left:-100px;
+    animation:floaty 26s ease-in-out infinite}
+  body::after{width:400px;height:400px;background:#a3cfe6;bottom:-130px;right:-90px;
+    animation:floaty 30s ease-in-out infinite reverse}
+  @keyframes floaty{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,30px)}}
+  .cloud,.scene-bg{display:none}
+
+  .device{position:relative;z-index:2;width:min(680px,100%);
+    /* frosted transparent green — the gradient shows softly through */
+    background:linear-gradient(160deg, rgba(180,214,130,.42), rgba(150,190,140,.30));
+    backdrop-filter:blur(16px) saturate(1.2);
+    -webkit-backdrop-filter:blur(16px) saturate(1.2);
+    border-radius:34px;padding:22px;border:2px solid rgba(255,255,255,.55);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.4), inset 0 -4px 0 rgba(90,110,50,.12),
+      0 20px 50px rgba(70,100,60,.28)}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 6px}
+  .brand .name{font-family:'Press Start 2P';font-size:15px;color:#5a6e34;
+    text-shadow:2px 2px 0 rgba(255,255,255,.5)}
+  .brand .sub{margin-left:auto;font-size:18px;color:#5a6e34;opacity:.8}
+  .brand .power{width:12px;height:12px;border-radius:50%;background:#ff6b8a;
+    box-shadow:0 0 8px #ff6b8a;animation:blink 2s infinite}
+  @keyframes blink{0%,90%,100%{opacity:1}95%{opacity:.3}}
+
+  .screen{background:linear-gradient(160deg,var(--screen),var(--screen-d));
+    border-radius:18px;padding:18px;color:var(--screen-ink);min-height:340px;position:relative;overflow:hidden;
+    box-shadow:inset 0 4px 12px rgba(60,90,45,.3),inset 0 0 0 3px rgba(255,255,255,.4)}
+  .screen::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.15;
+    background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(60,90,45,.4) 3px 4px)}
+
+  .pet{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;position:relative;z-index:2}
+  .pet-frame{width:150px;height:150px;border-radius:16px;overflow:hidden;
+    background:linear-gradient(160deg,#eafbe0,#cfeac0);display:grid;place-items:center;image-rendering:pixelated;
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.6),0 4px 0 rgba(90,120,55,.25)}
+  .pet-frame img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+  .pet-frame .fb{font-size:4rem}
+  .pet-frame.hatch{animation:hatch .6s steps(4)}
+  @keyframes hatch{0%{transform:scale(.4) rotate(-10deg)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+  .pet .pname{font-family:'Press Start 2P';font-size:15px;color:var(--screen-ink);margin-top:4px}
+  .pet .pbadge{font-size:19px;background:rgba(63,90,52,.12);padding:3px 12px;border-radius:20px;letter-spacing:.5px}
+  .pet .pvibe{font-size:19px;opacity:.85;line-height:1.1;max-width:280px}
+  .stats{width:100%;margin-top:10px;font-size:19px;text-align:left;line-height:1.35;
+    background:rgba(255,255,255,.35);border-radius:12px;padding:10px 14px}
+  .stats .row{display:flex;gap:8px;justify-content:space-between}
+  .stats .k{opacity:.7}
+  .reading{width:100%;margin-top:10px;font-size:19px;line-height:1.25;text-align:left;min-height:70px;
+    background:rgba(255,255,255,.35);border-radius:12px;padding:10px 14px}
+
+  .page{display:none}
+  .page.on{display:block;animation:slidein .25s ease}
+  @keyframes slidein{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+  .page-head{font-family:'Press Start 2P';font-size:12px;color:var(--screen-ink);
+    margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .page-head .num{background:var(--screen-ink);color:var(--screen);padding:3px 6px;border-radius:5px;font-size:10px}
+  .frow{display:flex;align-items:center;gap:10px;margin-bottom:9px;position:relative;z-index:2}
+  .frow label{flex:0 0 40%;font-size:20px;color:var(--screen-ink);opacity:.85}
+  .frow input,.frow select{flex:1;font-family:'VT323',monospace;font-size:19px;
+    background:rgba(255,255,255,.6);border:3px solid rgba(63,90,52,.25);border-radius:9px;
+    padding:5px 9px;color:var(--screen-ink);outline:none;cursor:pointer}
+  .frow input{cursor:text}
+  .frow input:focus,.frow select:focus{border-color:var(--screen-ink);background:#fff}
+
+  .deck{display:flex;align-items:center;gap:14px;margin-top:18px;padding:0 6px}
+  .tabs{display:flex;gap:8px}
+  .tab-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.5);
+    box-shadow:inset 0 0 0 2px rgba(90,110,50,.3)}
+  .tab-dot.on{background:var(--pink);box-shadow:0 0 8px var(--pink)}
+  .btns{margin-left:auto;display:flex;gap:10px}
+  button{font-family:'Press Start 2P';cursor:pointer;border:none;color:#fff;font-size:11px;
+    padding:12px 16px;border-radius:14px;transition:transform .08s,box-shadow .08s}
+  .btn-back{background:#a6c45f;box-shadow:0 5px 0 #86a044}
+  .btn-next{background:var(--pink);box-shadow:0 5px 0 var(--pink-d)}
+  .btn-go{background:#ff8fb0;box-shadow:0 5px 0 #e0648c}
+  button:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.3)!important}
+  button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .hidden{display:none}
+  .foot{text-align:center;margin-top:14px;font-size:18px;color:#5a6e34;opacity:.8}
+  .foot b{font-family:'Press Start 2P';font-size:11px}
+  .dots{display:inline-flex;gap:4px}
+  .dots i{width:6px;height:6px;background:var(--screen-ink);animation:bb 1s infinite}
+  .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  @keyframes bb{0%,100%{opacity:.3}50%{opacity:1}}
+
+  @media(max-width:560px){
+    body{font-size:19px}
+    .frow{flex-direction:column;align-items:stretch;gap:3px}
+    .frow label{flex:none}
+    .brand .name{font-size:12px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scene-bg">
+  <div class="mtn m1"><div class="cap"></div></div>
+  <div class="mtn m2"><div class="cap"></div></div>
+  <div class="pcloud pc1"></div><div class="pcloud pc2"></div><div class="pcloud pc3"></div>
+  <div class="hill h1"></div><div class="hill h2"></div><div class="hill h3"></div>
+  <div class="rain" id="rain"></div>
+</div>
+
+<div class="device">
+  <div class="brand">
+    <span class="power"></span>
+    <span class="name">PurrSona</span>
+    <span class="sub">&lsaquo; pocket edition &rsaquo;</span>
+  </div>
+
+  <div class="screen">
+    <div id="pages">
+      <div class="page on" data-page="0">
+        <div class="page-head"><span class="num">1/3</span> looks</div>
+        <div class="frow"><label>name</label><input id="cat_name" placeholder="Luna, Mochi…"></div>
+        <div class="frow"><label>breed</label>
+          <select id="breed"><option>Persian</option><option selected>Ragdoll</option><option>Siamese</option>
+          <option>Maine Coon</option><option>Scottish Fold</option><option>British Shorthair</option>
+          <option>Bengal</option><option>Sphynx</option><option>Birman</option><option>Abyssinian</option>
+          <option>Norwegian Forest</option><option>Burmese</option><option>Tonkinese</option>
+          <option>Chartreux</option><option>Manx</option></select></div>
+        <div class="frow"><label>fur</label>
+          <select id="fur_color"><option>White</option><option>Orange</option><option>Black</option>
+          <option>Grey</option><option>Calico</option><option>Tabby</option><option selected>Cream</option>
+          <option>Brown</option><option>Chocolate</option><option>Cinnamon</option><option>Blue-Grey</option></select></div>
+        <div class="frow"><label>eyes</label>
+          <select id="eye_color"><option selected>Blue</option><option>Green</option><option>Amber</option>
+          <option>Heterochromia</option><option>Yellow</option><option>Copper</option><option>Hazel</option></select></div>
+        <div class="frow"><label>size</label>
+          <select id="size"><option>Tiny</option><option>Small</option><option>Medium</option>
+          <option selected>Large</option><option>Giant</option></select></div>
+        <div class="frow"><label>coat</label>
+          <select id="coat_length"><option>Hairless</option><option>Short</option><option>Medium</option>
+          <option>Long</option><option selected>Fluffy Cloud</option></select></div>
+      </div>
+
+      <div class="page" data-page="1">
+        <div class="page-head"><span class="num">2/3</span> personality</div>
+        <div class="frow"><label>energy</label>
+          <select id="energy_level"><option>Couch Potato</option><option selected>Lazy</option>
+          <option>Moderate</option><option>Active</option><option>Hyperactive</option><option>Zoomies Mode</option></select></div>
+        <div class="frow"><label>voice</label>
+          <select id="vocalization"><option>Silent</option><option selected>Quiet</option><option>Moderate</option>
+          <option>Chatty</option><option>Loud</option><option>Opera Singer</option></select></div>
+        <div class="frow"><label>affection</label>
+          <select id="affection_level"><option>Ice Queen</option><option>Aloof</option><option selected>Selective</option>
+          <option>Cuddly</option><option>Velcro Cat</option></select></div>
+        <div class="frow"><label>play 1-10</label><input type="number" id="playfulness_score" value="4" min="1" max="10"></div>
+        <div class="frow"><label>indep 1-10</label><input type="number" id="independence_score" value="7" min="1" max="10"></div>
+        <div class="frow"><label>grooming</label>
+          <select id="grooming_needs"><option>Low</option><option>Medium</option><option>High</option><option selected>Salon Level</option></select></div>
+      </div>
+
+      <div class="page" data-page="2">
+        <div class="page-head"><span class="num">3/3</span> life</div>
+        <div class="frow"><label>age (mo)</label><input type="number" id="age_months" value="36" min="1" max="180"></div>
+        <div class="frow"><label>weight kg</label><input type="number" id="weight_kg" value="6.5" min="1" max="12" step="0.1"></div>
+        <div class="frow"><label>home</label>
+          <select id="indoor_outdoor"><option selected>Indoor</option><option>Outdoor</option><option>Both</option></select></div>
+        <div class="frow"><label>w/ humans</label>
+          <select id="social_with_humans"><option>Antisocial</option><option>Tolerant</option>
+          <option selected>Friendly</option><option>Social Butterfly</option></select></div>
+        <div class="frow"><label>w/ cats</label>
+          <select id="social_with_cats"><option>Hates Everyone</option><option selected>Selective</option>
+          <option>Friendly</option><option>Loves Everyone</option></select></div>
+        <div class="frow"><label>notes</label><input id="extra_notes" placeholder="spoiled, dramatic…"></div>
+      </div>
+
+      <div class="page" data-page="result">
+        <div class="pet">
+          <div class="pet-frame" id="petFrame"><img src="catttttttttttt.png" alt="cat"
+            onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fb',textContent:''}))"></div>
+          <div class="pname" id="pName">PurrSona</div>
+          <div class="pbadge" id="pBadge">? ? ?</div>
+          <div class="pvibe" id="pVibe"></div>
+          <div class="stats" id="pStats"></div>
+          <div class="reading" id="pReading"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck">
+    <div class="tabs" id="tabs"><div class="tab-dot on"></div><div class="tab-dot"></div><div class="tab-dot"></div></div>
+    <div class="btns">
+      <button class="btn-back hidden" id="backBtn" onclick="go(-1)">back</button>
+      <button class="btn-next" id="nextBtn" onclick="go(1)">next</button>
+      <button class="btn-go hidden" id="goBtn" onclick="predict()">hatch!</button>
+      <button class="btn-back hidden" id="againBtn" onclick="reset()">again</button>
+    </div>
+  </div>
+
+  <div class="foot">a tiny ML pet · <b>xaynakive</b></div>
+</div>
+
+<script>
+  const API = "https://xaynakive-purrsona.hf.space";
+  const CAT_IMG = "catttttttttttt.png";
+  const personaImg = { Royal:CAT_IMG, Bossy:CAT_IMG, Chaotic:CAT_IMG, Dreamy:CAT_IMG, Shy:CAT_IMG };
+
+  const colorMap = {
+    'Lavender':'#c8b6ff','Icy Blue':'#a0c4ff','Cherry Red':'#ff6b8a','Golden Yellow':'#ffd166',
+    'Emerald Green':'#06d6a0','Rose Pink':'#ffb3c6','Cream White':'#fff8f0','Midnight Black':'#2d1b3d',
+    'Sage Green':'#b5ead7','Dusty Mauve':'#d4a5c9'};
+  const vibes = {
+    Royal:'quiet luxury · regal · born to rule', Bossy:'commanding · runs the whole house',
+    Chaotic:'3am zoomies · pure chaos energy', Dreamy:'soft · whimsical · daydreamer',
+    Shy:'gentle · reserved · picks their people'};
+
+  const $ = id => document.getElementById(id);
+
+  /* scatter the rain */
+  (function makeRain(){
+    const r=$('rain'); if(!r) return;
+    let html='';
+    for(let i=0;i<70;i++){
+      const left=Math.random()*100, dur=(0.5+Math.random()*0.7).toFixed(2),
+            delay=(Math.random()*3).toFixed(2), op=(0.3+Math.random()*0.5).toFixed(2),
+            h=(24+Math.random()*26)|0;
+      html+=`<i style="left:${left}%;height:${h}px;opacity:${op};animation-duration:${dur}s;animation-delay:${delay}s"></i>`;
+    }
+    r.innerHTML=html;
+  })();
+  const pages = [...document.querySelectorAll('.page')];
+  let step = 0;
+  const LAST = 2;
+
+  function show(i){
+    pages.forEach(p=>p.classList.remove('on'));
+    (i==='result' ? pages.find(p=>p.dataset.page==='result') : pages[i]).classList.add('on');
+    [...$('tabs').children].forEach((d,k)=>d.classList.toggle('on', k===i));
+    $('backBtn').classList.toggle('hidden', i===0 || i==='result');
+    $('nextBtn').classList.toggle('hidden', i==='result' || i===LAST);
+    $('goBtn').classList.toggle('hidden', i!==LAST);
+    $('againBtn').classList.toggle('hidden', i!=='result');
+    $('tabs').classList.toggle('hidden', i==='result');
+  }
+  function go(dir){ step=Math.max(0,Math.min(LAST,step+dir)); show(step); }
+  function reset(){ step=0; show(0); }
+
+  async function aiParagraph(name,breed,personality,energy,affection,eye,fur,outfit,acc,color,extra){
+    const who=name||'this cat', note=extra?` Notes: ${extra}.`:'';
+    const prompt=`Write exactly 3 warm, poetic, specific sentences about ${who}, a ${breed} cat with ${fur} fur and ${eye} eyes. Personality ${personality}, ${energy} energy, ${affection} affection.${note} Signature look: ${outfit} and ${acc} in ${color}. Flowing prose, no lists.`;
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+      const d=await r.json(); return d.content[0].text;
+    }catch(e){
+      return `${who} is a ${personality.toLowerCase()} ${breed} whose ${fur.toLowerCase()} coat and ${eye.toLowerCase()} eyes tell a story before they enter the room. ${energy} in energy, ${affection.toLowerCase()} with their heart, they move exactly how they please. Their ${outfit.toLowerCase()} and ${acc.toLowerCase()} in ${color.toLowerCase()} aren't a choice — they're a statement.`;
+    }
+  }
+
+  async function predict(){
+    show('result');
+    const catName=$('cat_name').value||'Your Cat', extra=$('extra_notes').value;
+    $('pName').textContent=catName; $('pBadge').textContent='reading…'; $('pVibe').textContent='';
+    $('pStats').innerHTML=''; $('pReading').innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
+
+    const payload={breed:$('breed').value,fur_color:$('fur_color').value,eye_color:$('eye_color').value,
+      size:$('size').value,energy_level:$('energy_level').value,vocalization:$('vocalization').value,
+      affection_level:$('affection_level').value,coat_length:$('coat_length').value,
+      age_months:parseInt($('age_months').value)||24,weight_kg:parseFloat($('weight_kg').value)||4.5,
+      indoor_outdoor:$('indoor_outdoor').value,playfulness_score:parseInt($('playfulness_score').value)||5,
+      independence_score:parseInt($('independence_score').value)||5,grooming_needs:$('grooming_needs').value,
+      social_with_humans:$('social_with_humans').value,social_with_cats:$('social_with_cats').value};
+
+    try{
+      const res=await fetch(`${API}/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await res.json();
+
+      const frame=$('petFrame');
+      frame.innerHTML=`<img src="${personaImg[data.personality]||CAT_IMG}" alt="cat"
+        onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fb',textContent:''}))">`;
+      frame.classList.remove('hatch'); void frame.offsetWidth; frame.classList.add('hatch');
+
+      $('pBadge').textContent=`✦ ${data.personality} ✦`;
+      $('pVibe').textContent=vibes[data.personality]||data.vibe||'';
+      const sw=colorMap[data.color]||'#bdd8f2';
+      $('pStats').innerHTML=
+        `<div class="row"><span class="k">outfit</span><span class="v">${data.outfit}</span></div>
+         <div class="row"><span class="k">accessory</span><span class="v">${data.accessory}</span></div>
+         <div class="row"><span class="k">travel bag</span><span class="v">${data.travel}</span></div>
+         <div class="row"><span class="k">color</span><span class="v">${data.color} <b style="display:inline-block;width:14px;height:14px;background:${sw};border-radius:3px;vertical-align:-2px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)"></b></span></div>`;
+
+      const para=await aiParagraph(catName,payload.breed,data.personality,payload.energy_level,
+        payload.affection_level,payload.eye_color,payload.fur_color,data.outfit,data.accessory,data.color,extra);
+      $('pReading').textContent=para;
+    }catch(e){
+      $('pBadge').textContent='zzz…';
+      $('pReading').textContent='The pet is asleep — wake the HuggingFace Space and try again.';
+    }
+  }
+  show(0);
+</script>
+</body>
+</html>

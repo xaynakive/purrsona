@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
@@ -223,9 +224,28 @@
 </div>
 
 <script>
-  const API = "https://xaynakive-purrsona.hf.space";
+  /* runs the ML model in your browser — no server, never sleeps.
+     keep index.html, purrsona_model.onnx and purrsona_encoders.json together. */
   const CAT_IMG = "catttttttttttt.png";
   const personaImg = { Royal:CAT_IMG, Bossy:CAT_IMG, Chaotic:CAT_IMG, Dreamy:CAT_IMG, Shy:CAT_IMG };
+
+  // the fashion lookup (same values your API used)
+  const FASHION = {
+    Royal:  {outfit:'Golden Cape',   accessory:'Crystal Crown',  travel:'Gold Vanity Case',    color:'Cream White'},
+    Bossy:  {outfit:'Velvet Coat',   accessory:'Pearl Necklace', travel:'Mini Briefcase',      color:'Midnight Black'},
+    Chaotic:{outfit:'Denim Jacket',  accessory:'Star Pins',      travel:'Cherry Red Backpack', color:'Cherry Red'},
+    Dreamy: {outfit:'Lavender Dress',accessory:'Flower Garland', travel:'Lavender Tote Bag',   color:'Lavender'},
+    Shy:    {outfit:'Fluffy Hoodie', accessory:'Satin Bow',      travel:'Rattan Bag',          color:'Icy Blue'},
+  };
+
+  let session=null, enc=null, modelReady=false, modelError=false;
+  (async function loadModel(){
+    try{
+      enc = await (await fetch('purrsona_encoders.json')).json();
+      session = await ort.InferenceSession.create('purrsona_model.onnx');
+      modelReady = true;
+    }catch(e){ modelError=true; console.error('[purrsona] model load failed:', e); }
+  })();
 
   const colorMap = {
     'Lavender':'#c8b6ff','Icy Blue':'#a0c4ff','Cherry Red':'#ff6b8a','Golden Yellow':'#ffd166',
@@ -286,7 +306,15 @@
     $('pName').textContent=catName; $('pBadge').textContent='reading…'; $('pVibe').textContent='';
     $('pStats').innerHTML=''; $('pReading').innerHTML='<span class="dots"><i></i><i></i><i></i></span>';
 
-    const payload={breed:$('breed').value,fur_color:$('fur_color').value,eye_color:$('eye_color').value,
+    // wait for the model if it's still loading
+    let tries=0; while(!modelReady && !modelError && tries<40){ await new Promise(r=>setTimeout(r,100)); tries++; }
+    if(modelError || !modelReady){
+      $('pBadge').textContent='zzz…';
+      $('pReading').textContent='Model files not found — keep purrsona_model.onnx and purrsona_encoders.json next to this page (and serve over http, not file://).';
+      return;
+    }
+
+    const raw={breed:$('breed').value,fur_color:$('fur_color').value,eye_color:$('eye_color').value,
       size:$('size').value,energy_level:$('energy_level').value,vocalization:$('vocalization').value,
       affection_level:$('affection_level').value,coat_length:$('coat_length').value,
       age_months:parseInt($('age_months').value)||24,weight_kg:parseFloat($('weight_kg').value)||4.5,
@@ -295,29 +323,39 @@
       social_with_humans:$('social_with_humans').value,social_with_cats:$('social_with_cats').value};
 
     try{
-      const res=await fetch(`${API}/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const data=await res.json();
+      // encode inputs exactly like training (label-index categoricals)
+      const vec = enc.features.map(f=>{
+        const v = raw[f];
+        if(enc.categorical[f]){ const i = enc.categorical[f].indexOf(String(v)); return i<0?0:i; }
+        return Number(v)||0;
+      });
+      const tensor = new ort.Tensor('float32', Float32Array.from(vec), [1, enc.features.length]);
+      const out = await session.run({ input: tensor });
+      const first = out[Object.keys(out)[0]];
+      const personality = enc.classes[Number(first.data[0])];
+      const fash = FASHION[personality] || {};
 
       const frame=$('petFrame');
-      frame.innerHTML=`<img src="${personaImg[data.personality]||CAT_IMG}" alt="cat"
+      frame.innerHTML=`<img src="${personaImg[personality]||CAT_IMG}" alt="cat"
         onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fb',textContent:''}))">`;
       frame.classList.remove('hatch'); void frame.offsetWidth; frame.classList.add('hatch');
 
-      $('pBadge').textContent=`✦ ${data.personality} ✦`;
-      $('pVibe').textContent=vibes[data.personality]||data.vibe||'';
-      const sw=colorMap[data.color]||'#bdd8f2';
+      $('pBadge').textContent=`✦ ${personality} ✦`;
+      $('pVibe').textContent=vibes[personality]||'';
+      const sw=colorMap[fash.color]||'#bdd8f2';
       $('pStats').innerHTML=
-        `<div class="row"><span class="k">outfit</span><span class="v">${data.outfit}</span></div>
-         <div class="row"><span class="k">accessory</span><span class="v">${data.accessory}</span></div>
-         <div class="row"><span class="k">travel bag</span><span class="v">${data.travel}</span></div>
-         <div class="row"><span class="k">color</span><span class="v">${data.color} <b style="display:inline-block;width:14px;height:14px;background:${sw};border-radius:3px;vertical-align:-2px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)"></b></span></div>`;
+        `<div class="row"><span class="k">outfit</span><span class="v">${fash.outfit}</span></div>
+         <div class="row"><span class="k">accessory</span><span class="v">${fash.accessory}</span></div>
+         <div class="row"><span class="k">travel bag</span><span class="v">${fash.travel}</span></div>
+         <div class="row"><span class="k">color</span><span class="v">${fash.color} <b style="display:inline-block;width:14px;height:14px;background:${sw};border-radius:3px;vertical-align:-2px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)"></b></span></div>`;
 
-      const para=await aiParagraph(catName,payload.breed,data.personality,payload.energy_level,
-        payload.affection_level,payload.eye_color,payload.fur_color,data.outfit,data.accessory,data.color,extra);
+      const para=await aiParagraph(catName,raw.breed,personality,raw.energy_level,
+        raw.affection_level,raw.eye_color,raw.fur_color,fash.outfit,fash.accessory,fash.color,extra);
       $('pReading').textContent=para;
     }catch(e){
-      $('pBadge').textContent='zzz…';
-      $('pReading').textContent='The pet is asleep — wake the HuggingFace Space and try again.';
+      console.error(e);
+      $('pBadge').textContent='hmm…';
+      $('pReading').textContent='Something went wrong running the model — check the console.';
     }
   }
   show(0);
